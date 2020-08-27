@@ -25,6 +25,8 @@ Improvements
 API Changes
 -----------
 
+- Option to sort neighbors in depth-limited DFS traversal
+
 
 Deprecations
 ------------

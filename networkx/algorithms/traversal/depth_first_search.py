@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-def dfs_edges(G, source=None, depth_limit=None):
+def dfs_edges(G, source=None, depth_limit=None, sort_neighbors=None):
     """Iterate over edges in a depth-first-search (DFS).
 
     Perform a depth-first-search over the nodes of G and yield
@@ -29,6 +29,10 @@ def dfs_edges(G, source=None, depth_limit=None):
 
     depth_limit : int, optional (default=len(G))
        Specify the maximum search depth.
+
+    sort_neighbors : function
+        A function that takes the list of neighbors of given node as input, and
+        returns an *iterator* over these neighbors but with custom ordering.
 
     Returns
     -------
@@ -64,9 +68,11 @@ def dfs_edges(G, source=None, depth_limit=None):
     edge_dfs
     bfs_edges
     """
+    if sort_neighbors is None:
+        sort_neighbors = lambda neighbors: neighbors
     if source is None:
         # edges for all components
-        nodes = G
+        nodes = sort_neighbors(G)
     else:
         # edges for components with source
         nodes = [source]
@@ -76,8 +82,9 @@ def dfs_edges(G, source=None, depth_limit=None):
     for start in nodes:
         if start in visited:
             continue
-        visited.add(start)
-        stack = [(start, depth_limit, iter(G[start]))]
+        if not G.is_directed() or G.in_degree(start) == 0:
+            visited.add(start)
+        stack = [(start, depth_limit, iter(sort_neighbors(G[start])))]
         while stack:
             parent, depth_now, children = stack[-1]
             try:
@@ -86,7 +93,7 @@ def dfs_edges(G, source=None, depth_limit=None):
                     yield parent, child
                     visited.add(child)
                     if depth_now > 1:
-                        stack.append((child, depth_now - 1, iter(G[child])))
+                        stack.append((child, depth_now - 1, iter(sort_neighbors(G[child]))))
             except StopIteration:
                 stack.pop()
 
@@ -186,7 +193,7 @@ def dfs_predecessors(G, source=None, depth_limit=None):
     return {t: s for s, t in dfs_edges(G, source, depth_limit)}
 
 
-def dfs_successors(G, source=None, depth_limit=None):
+def dfs_successors(G, source=None, depth_limit=None, sort_neighbors=None):
     """Returns dictionary of successors in depth-first-search from source.
 
     Parameters
@@ -198,6 +205,10 @@ def dfs_successors(G, source=None, depth_limit=None):
 
     depth_limit : int, optional (default=len(G))
        Specify the maximum search depth.
+
+    sort_neighbors : function
+        A function that takes the list of neighbors of given node as input, and
+        returns an *iterator* over these neighbors but with custom ordering.
 
     Returns
     -------
@@ -234,12 +245,12 @@ def dfs_successors(G, source=None, depth_limit=None):
     bfs_tree
     """
     d = defaultdict(list)
-    for s, t in dfs_edges(G, source=source, depth_limit=depth_limit):
+    for s, t in dfs_edges(G, source=source, depth_limit=depth_limit, sort_neighbors=sort_neighbors):
         d[s].append(t)
     return dict(d)
 
 
-def dfs_postorder_nodes(G, source=None, depth_limit=None):
+def dfs_postorder_nodes(G, source=None, depth_limit=None, sort_neighbors=None):
     """Generate nodes in a depth-first-search post-ordering starting at source.
 
     Parameters
@@ -251,6 +262,10 @@ def dfs_postorder_nodes(G, source=None, depth_limit=None):
 
     depth_limit : int, optional (default=len(G))
        Specify the maximum search depth.
+
+    sort_neighbors : function
+        A function that takes the list of neighbors of given node as input, and
+        returns an *iterator* over these neighbors but with custom ordering.
 
     Returns
     -------
@@ -286,11 +301,11 @@ def dfs_postorder_nodes(G, source=None, depth_limit=None):
     edge_dfs
     bfs_tree
     """
-    edges = nx.dfs_labeled_edges(G, source=source, depth_limit=depth_limit)
+    edges = nx.dfs_labeled_edges(G, source=source, depth_limit=depth_limit, sort_neighbors=sort_neighbors)
     return (v for u, v, d in edges if d == "reverse")
 
 
-def dfs_preorder_nodes(G, source=None, depth_limit=None):
+def dfs_preorder_nodes(G, source=None, depth_limit=None, sort_neighbors=None):
     """Generate nodes in a depth-first-search pre-ordering starting at source.
 
     Parameters
@@ -303,6 +318,10 @@ def dfs_preorder_nodes(G, source=None, depth_limit=None):
 
     depth_limit : int, optional (default=len(G))
        Specify the maximum search depth.
+
+    sort_neighbors : function
+        A function that takes the list of neighbors of given node as input, and
+        returns an *iterator* over these neighbors but with custom ordering.
 
     Returns
     -------
@@ -337,11 +356,11 @@ def dfs_preorder_nodes(G, source=None, depth_limit=None):
     dfs_labeled_edges
     bfs_edges
     """
-    edges = nx.dfs_labeled_edges(G, source=source, depth_limit=depth_limit)
+    edges = nx.dfs_labeled_edges(G, source=source, depth_limit=depth_limit, sort_neighbors=sort_neighbors)
     return (v for u, v, d in edges if d == "forward")
 
 
-def dfs_labeled_edges(G, source=None, depth_limit=None):
+def dfs_labeled_edges(G, source=None, depth_limit=None, sort_neighbors=None):
     """Iterate over edges in a depth-first-search (DFS) labeled by type.
 
     Parameters
@@ -354,6 +373,10 @@ def dfs_labeled_edges(G, source=None, depth_limit=None):
 
     depth_limit : int, optional (default=len(G))
        Specify the maximum search depth.
+
+    sort_neighbors : function
+        A function that takes the list of neighbors of given node as input, and
+        returns an *iterator* over these neighbors but with custom ordering.
 
     Returns
     -------
@@ -406,9 +429,11 @@ def dfs_labeled_edges(G, source=None, depth_limit=None):
     """
     # Based on http://www.ics.uci.edu/~eppstein/PADS/DFS.py
     # by D. Eppstein, July 2004.
+    if sort_neighbors is None:
+        sort_neighbors = lambda neighbors: neighbors
     if source is None:
         # edges for all components
-        nodes = G
+        nodes = sort_neighbors(G)
     else:
         # edges for components with source
         nodes = [source]
@@ -419,8 +444,9 @@ def dfs_labeled_edges(G, source=None, depth_limit=None):
         if start in visited:
             continue
         yield start, start, "forward"
-        visited.add(start)
-        stack = [(start, depth_limit, iter(G[start]))]
+        if not G.is_directed() or G.in_degree(start) == 0:
+            visited.add(start)
+        stack = [(start, depth_limit, iter(sort_neighbors(G[start])))]
         while stack:
             parent, depth_now, children = stack[-1]
             try:
@@ -431,7 +457,7 @@ def dfs_labeled_edges(G, source=None, depth_limit=None):
                     yield parent, child, "forward"
                     visited.add(child)
                     if depth_now > 1:
-                        stack.append((child, depth_now - 1, iter(G[child])))
+                        stack.append((child, depth_now - 1, iter(sort_neighbors(G[child]))))
             except StopIteration:
                 stack.pop()
                 if stack:

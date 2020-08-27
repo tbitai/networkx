@@ -1,3 +1,4 @@
+from functools import partial
 import networkx as nx
 
 
@@ -12,6 +13,16 @@ class TestDFS:
         D = nx.Graph()
         D.add_edges_from([(0, 1), (2, 3)])
         cls.D = D
+        # backwards defined digraph
+        B = nx.DiGraph()
+        B.add_edges_from([(1, 2), (0, 1)])
+        cls.B = B
+        # unsorted digraph
+        U = nx.DiGraph()
+        U.add_edges_from([(0, 1), (0, 2), (1, 4), (1, 3), (2, 5)])
+        cls.U = U
+
+        cls.sort_desc = partial(sorted, reverse=True)
 
     def test_preorder_nodes(self):
         assert list(nx.dfs_preorder_nodes(self.G, source=0)) == [0, 1, 2, 4, 3]
@@ -51,10 +62,33 @@ class TestDFS:
         edges = nx.dfs_edges(self.D)
         assert list(edges) == [(0, 1), (2, 3)]
 
+    def test_dfs_edges_comprehensiveness(self):
+        edges = nx.dfs_edges(self.B)
+        assert list(edges) == [(1, 2), (0, 1)]
+
+    def test_dfs_edges_sorting(self):
+        edges_asc = nx.dfs_edges(self.U, sort_neighbors=sorted)
+        edges_desc = nx.dfs_edges(self.U, sort_neighbors=self.sort_desc)
+        assert list(edges_asc) == [(0, 1), (1, 3), (1, 4), (0, 2), (2, 5)]
+        assert list(edges_desc) == [(2, 5), (1, 4), (1, 3), (0, 2), (0, 1)]
+
     def test_dfs_labeled_edges(self):
         edges = list(nx.dfs_labeled_edges(self.G, source=0))
         forward = [(u, v) for (u, v, d) in edges if d == "forward"]
         assert forward == [(0, 0), (0, 1), (1, 2), (2, 4), (4, 3)]
+
+    def test_dfs_labeled_edges_comprehensiveness(self):
+        edges = nx.dfs_labeled_edges(self.B)
+        forward = [(u, v) for (u, v, d) in edges if d == "forward"]
+        assert forward == [(1, 1), (1, 2), (0, 0), (0, 1)]
+
+    def test_dfs_labeled_edges_sorting(self):
+        edges_asc = nx.dfs_labeled_edges(self.U, sort_neighbors=sorted)
+        edges_desc = nx.dfs_labeled_edges(self.U, sort_neighbors=self.sort_desc)
+        forward_asc = [(u, v) for (u, v, d) in edges_asc if d == "forward"]
+        forward_desc = [(u, v) for (u, v, d) in edges_desc if d == "forward"]
+        assert forward_asc == [(0, 0), (0, 1), (1, 3), (1, 4), (0, 2), (2, 5)]
+        assert forward_desc == [(5, 5), (4, 4), (3, 3), (2, 2), (2, 5), (1, 1), (1, 4), (1, 3), (0, 0), (0, 2), (0, 1)]
 
     def test_dfs_labeled_disconnected_edges(self):
         edges = list(nx.dfs_labeled_edges(self.D))
